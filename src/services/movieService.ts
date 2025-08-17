@@ -1,7 +1,8 @@
+// src/services/movieService.ts
 import axios from "axios";
 import type { Movie } from "../types/movie";
 
-interface FetchMoviesResponse {
+export interface FetchMoviesResponse {
   page: number;
   results: Movie[];
   total_pages: number;

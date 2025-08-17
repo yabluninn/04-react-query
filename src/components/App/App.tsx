@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryFunction } from "@tanstack/react-query";
 import toast, { Toaster } from "react-hot-toast";
 import SearchBar from "../SearchBar/SearchBar";
 import Loader from "../Loader/Loader";
@@ -7,7 +7,10 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
 import ReactPaginate from "react-paginate";
-import { fetchMovies } from "../../services/movieService";
+import {
+  fetchMovies,
+  type FetchMoviesResponse,
+} from "../../services/movieService";
 import type { Movie } from "../../types/movie";
 import css from "./App.module.css";
 
@@ -15,17 +18,28 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const { data, isError, isLoading, isFetching } = useQuery({
-    queryKey: ["movies", searchQuery, page],
-    queryFn: () => fetchMovies(searchQuery, page),
+  const queryKey = ["movies", searchQuery, page];
+
+  const queryFn: QueryFunction<FetchMoviesResponse> = () => {
+    return fetchMovies(searchQuery, page);
+  };
+
+  const {
+    data,
+    isError,
+    isPending, // ⚠️ з версії 5 замість isLoading
+  } = useQuery({
+    queryKey,
+    queryFn,
     enabled: !!searchQuery,
-    keepPreviousData: true,
   });
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setPage(1);
+    setHasSearched(true);
   };
 
   const handlePageChange = ({ selected }: { selected: number }) => {
@@ -33,19 +47,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isLoading && !isError && data && data.results.length === 0) {
+    if (!isPending && !isError && data && data.results.length === 0) {
       toast.error("No movies found for your request.");
     }
-  }, [isLoading, isError, data]);
+  }, [isPending, isError, data]);
 
   return (
     <>
       <SearchBar onSubmit={handleSearch} />
       <main>
-        {isLoading && <Loader />}
+        {hasSearched && isPending && <Loader />}
         {isError && <ErrorMessage />}
 
-        {!isLoading && !isError && data?.results.length > 0 && (
+        {!isPending && !isError && data?.results.length > 0 && (
           <>
             {data.total_pages > 1 && (
               <ReactPaginate

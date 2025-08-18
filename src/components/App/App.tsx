@@ -8,13 +8,13 @@ import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
 import ReactPaginate from "react-paginate";
 
+import css from "./App.module.css";
+
 import {
   fetchMovies,
   type FetchMoviesResponse,
 } from "../../services/movieService";
 import type { Movie } from "../../types/movie";
-
-import css from "./App.module.css";
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState("");

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import toast, { Toaster } from "react-hot-toast";
+
 import SearchBar from "../SearchBar/SearchBar";
 import Loader from "../Loader/Loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -8,13 +9,13 @@ import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
 import ReactPaginate from "react-paginate";
 
-import css from "./App.module.css";
-
 import {
   fetchMovies,
   type FetchMoviesResponse,
 } from "../../services/movieService";
 import type { Movie } from "../../types/movie";
+
+import css from "./App.module.css";
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,19 +23,14 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const queryKey = ["movies", searchQuery, page];
+  const queryEnabled = !!searchQuery;
 
-  const { data, isError, isLoading } = useQuery<FetchMoviesResponse>(
-    queryKey,
-    () => fetchMovies(searchQuery, page),
+  const { data, isPending, isError, isSuccess } = useQuery<FetchMoviesResponse>(
     {
-      enabled: !!searchQuery,
-      keepPreviousData: true,
-      onSuccess: (data) => {
-        if (data.results.length === 0) {
-          toast.error("No movies found for your request.");
-        }
-      },
+      queryKey: ["movies", searchQuery, page],
+      queryFn: () => fetchMovies(searchQuery, page),
+      enabled: queryEnabled,
+      placeholderData: (prev) => prev,
     }
   );
 
@@ -48,14 +44,20 @@ export default function App() {
     setPage(selected + 1);
   };
 
+  useEffect(() => {
+    if (isSuccess && data?.results.length === 0 && hasSearched) {
+      toast.error("No movies found for your request.");
+    }
+  }, [isSuccess, data, hasSearched]);
+
   return (
     <>
       <SearchBar onSubmit={handleSearch} />
       <main>
-        {hasSearched && isLoading && <Loader />}
+        {hasSearched && isPending && <Loader />}
         {isError && <ErrorMessage />}
 
-        {!isLoading && !isError && data?.results.length > 0 && (
+        {isSuccess && data && data.results.length > 0 && (
           <>
             {data.total_pages > 1 && (
               <ReactPaginate
